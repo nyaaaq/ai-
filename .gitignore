@@ -1,45 +1,69 @@
-# APIÃÜÔ¿µÈÃô¸ĞĞÅÏ¢
-.env
-*.key
-secrets.json
-
-# PythonÌØ¶¨ÎÄ¼ş
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.python-version
-
-# »·¾³ÎÄ¼ş
-venv/
-.env/
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
 env/
-virtualenv/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# ±à¼­Æ÷ÎÄ¼ş
+# ç¯å¢ƒå˜é‡æ–‡ä»¶ï¼ˆåŒ…å«æ•æ„Ÿä¿¡æ¯ï¼‰
+.env
+.env.local
+.env.*.local
+
+# ä¸Šä¼ å’Œè¾“å‡ºæ–‡ä»¶å¤¹
+uploads/
+outputs/
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
 
-# ÏµÍ³ÎÄ¼ş
+# OS
 .DS_Store
 Thumbs.db
 
-# ÈÕÖ¾ÎÄ¼ş
+# æ—¥å¿—æ–‡ä»¶
 *.log
 logs/
 
-# ´óÎÄ¼ş/Êı¾İ
-data/
-*.csv
-*.zip
-*.tar.gz
+# ä¸´æ—¶æ–‡ä»¶
+*.tmp
+*.temp
+.cache/
 
-# ¿ÉÖ´ĞĞÎÄ¼ş
-*.exe
-*.dll
-*.so
-*.dylib
+# æµ‹è¯•è¦†ç›–ç‡
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
 
-# ÎÄµµÉú³ÉÎÄ¼ş
-docs/_build/
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# å…¶ä»–
+*.bak
+*.orig

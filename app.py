@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_from_directory
 import os
 import json
 import time
@@ -35,6 +36,11 @@ os.makedirs(Config.OUTPUT_FOLDER, exist_ok=True)
 def index():
     """主页"""
     return render_template('index.html')
+
+@app.route('/outputs/<filename>')
+def serve_output(filename):
+    """提供输出文件（如思维导图图片）"""
+    return send_from_directory(Config.OUTPUT_FOLDER, filename)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -93,17 +99,24 @@ def process_content():
                     prompt = note_generator.build_prompt(processed_content)
                     processor = note_generator
                 
+                # 存储完整响应（用于思维导图）
+                full_response = ""
+                
                 # 获取流式响应
                 for chunk in api_client.stream_completion(prompt):
                     if chunk:
+                        full_response += chunk
                         yield f"data: {json.dumps({'content': chunk})}\n\n"
                 
                 # 生成最终结果
                 if task_type == 'mindmap':
-                    # 收集完整响应后生成思维导图
-                    full_response = api_client.get_completion(prompt)
+                    # 生成思维导图图片
+                    logger.info("开始生成思维导图图片")
                     image_path = processor.generate_mindmap_image(full_response)
-                    yield f"data: {json.dumps({'type': 'mindmap_complete', 'image_url': image_path})}\n\n"
+                    if image_path:
+                        yield f"data: {json.dumps({'type': 'mindmap_complete', 'image_url': image_path})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'type': 'mindmap_error', 'message': '思维导图生成失败'})}\n\n"
                 
                 yield f"data: {json.dumps({'type': 'complete'})}\n\n"
                 
@@ -130,4 +143,6 @@ def health_check():
     return jsonify({'status': 'healthy', 'timestamp': time.time()})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # 从环境变量读取调试模式
+    debug_mode = Config.DEBUG
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)

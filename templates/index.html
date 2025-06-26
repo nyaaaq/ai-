@@ -4,6 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>学生学习助手</title>
+    
+    <!-- MathJax配置和加载 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady();
+                }
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -259,9 +282,68 @@
             border-radius: 10px;
             max-height: 600px;
             overflow-y: auto;
-            white-space: pre-wrap;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.8;
+        }
+        
+        /* Markdown样式 */
+        .result-content h1 {
+            font-size: 2em;
+            margin: 20px 0 15px 0;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .result-content h2 {
+            font-size: 1.5em;
+            margin: 15px 0 10px 0;
+            color: #444;
+        }
+        
+        .result-content h3 {
+            font-size: 1.2em;
+            margin: 10px 0 8px 0;
+            color: #555;
+        }
+        
+        .result-content p {
+            margin: 10px 0;
+        }
+        
+        .result-content ul, .result-content ol {
+            margin: 10px 0 10px 20px;
+        }
+        
+        .result-content blockquote {
+            margin: 10px 0;
+            padding: 10px 20px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            color: #555;
+        }
+        
+        .result-content code {
+            background: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            line-height: 1.6;
+        }
+        
+        .result-content pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        
+        /* MathJax样式优化 */
+        .result-content .MathJax {
+            font-size: 1.1em;
+        }
+        
+        .result-content mjx-container {
+            margin: 0 3px;
         }
         
         .mindmap-container {
@@ -424,6 +506,7 @@
         let currentTaskType = 'notes';
         let currentDifficulty = 'medium';
         let generatedResult = '';
+        let renderTimeout = null;
         
         // 标签切换
         document.querySelectorAll('.tab').forEach(tab => {
@@ -567,15 +650,29 @@
                                 if (data.type === 'mindmap_complete') {
                                     // 显示思维导图
                                     const mindmapContainer = document.getElementById('mindmapContainer');
-                                    mindmapContainer.innerHTML = `<img src="${data.image_url}" alt="思维导图">`;
+                                    if (data.image_url) {
+                                        mindmapContainer.innerHTML = `<img src="${data.image_url}" alt="思维导图">`;
+                                    } else {
+                                        mindmapContainer.innerHTML = '<p style="color: #999;">思维导图生成失败</p>';
+                                    }
                                 } else if (data.type === 'complete') {
                                     // 生成完成
                                     generatedResult = resultContent;
+                                    // 渲染Markdown内容
+                                    if (currentTaskType !== 'mindmap') {
+                                        streamContent.innerHTML = renderMarkdown(resultContent);
+                                        // 立即触发MathJax渲染
+                                        renderMathJax(streamContent);
+                                    }
                                 } else if (data.content) {
                                     // 追加内容
                                     resultContent += data.content;
-                                    streamContent.textContent = resultContent;
-                                    streamContent.scrollTop = streamContent.scrollHeight;
+                                    if (currentTaskType !== 'mindmap') {
+                                        streamContent.innerHTML = renderMarkdown(resultContent);
+                                        streamContent.scrollTop = streamContent.scrollHeight;
+                                        // 延迟渲染MathJax以提高性能
+                                        debouncedRenderMathJax(streamContent);
+                                    }
                                 }
                             } catch (e) {
                                 console.error('解析数据错误:', e);
@@ -592,6 +689,82 @@
                 generateBtn.textContent = '🚀 开始生成';
             }
         });
+        
+        // 防抖的MathJax渲染
+        function debouncedRenderMathJax(element) {
+            if (renderTimeout) {
+                clearTimeout(renderTimeout);
+            }
+            renderTimeout = setTimeout(() => {
+                renderMathJax(element);
+            }, 300);
+        }
+        
+        // 触发MathJax渲染
+        function renderMathJax(element) {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([element]).catch((e) => {
+                    console.error('MathJax渲染错误:', e);
+                });
+            }
+        }
+        
+        // 渲染Markdown为HTML
+        function renderMarkdown(markdown) {
+            // 保护数学公式
+            const mathPatterns = [
+                { pattern: /\$\$([^$]+)\$\$/g, replacement: '@@DISPLAY_MATH_$1@@' },
+                { pattern: /\$([^$]+)\$/g, replacement: '@@INLINE_MATH_$1@@' }
+            ];
+            
+            let html = markdown;
+            
+            // 临时替换数学公式
+            mathPatterns.forEach(({pattern, replacement}) => {
+                html = html.replace(pattern, replacement);
+            });
+            
+            // 标题
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // 粗体
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            
+            // 引用
+            html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+            
+            // 列表
+            html = html.replace(/^\* (.+)/gim, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            html = html.replace(/^\d+\. (.+)/gim, '<li>$1</li>');
+            
+            // 代码块
+            html = html.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>');
+            html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+            
+            // 换行
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+            
+            // 清理多余的标签
+            html = html.replace(/<p><\/p>/g, '');
+            html = html.replace(/<p>(<h[1-6]>)/g, '$1');
+            html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<blockquote>)/g, '$1');
+            html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<ul>)/g, '$1');
+            html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<pre>)/g, '$1');
+            html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+            
+            // 恢复数学公式
+            html = html.replace(/@@DISPLAY_MATH_([^@]+)@@/g, '$$$$1$$');
+            html = html.replace(/@@INLINE_MATH_([^@]+)@@/g, '$$1$');
+            
+            return html;
+        }
         
         // 显示消息
         function showMessage(message, type) {

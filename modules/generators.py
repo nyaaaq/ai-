@@ -1,3 +1,4 @@
+
 import os
 import json
 import logging
@@ -9,12 +10,15 @@ import networkx as nx
 from config import Config
 import time
 import re
+import matplotlib
 
 logger = logging.getLogger(__name__)
 
-# 设置中文字体
-plt.rcParams['font.sans-serif'] = ['SimHei']
-plt.rcParams['axes.unicode_minus'] = False
+# 配置matplotlib以支持LaTeX和中文
+matplotlib.rcParams['text.usetex'] = False  # 使用matplotlib的数学渲染而不是完整的LaTeX
+matplotlib.rcParams['mathtext.fontset'] = 'cm'  # 使用Computer Modern字体
+matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 class MindMapGenerator:
     """思维导图生成器"""
@@ -32,6 +36,7 @@ class MindMapGenerator:
 3. 为每个主要分支添加子节点（二级、三级节点）
 4. 保持层次清晰，逻辑连贯
 5. 每个节点的文字要简洁明了
+6. 如果涉及数学公式，请保留原始的LaTeX格式（用$符号包围）
 
 请以JSON格式输出思维导图结构：
 {{
@@ -55,8 +60,8 @@ class MindMapGenerator:
             if json_match:
                 json_str = json_match.group()
                 return json.loads(json_str)
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"解析JSON失败: {e}")
         
         # 如果解析失败，返回默认结构
         return {
@@ -67,47 +72,147 @@ class MindMapGenerator:
             ]
         }
     
+    def process_math_text(self, text: str) -> tuple:
+        """处理包含数学公式的文本，返回处理后的文本和是否包含数学公式"""
+        # 检查是否包含数学公式
+        has_math = '$' in text
+        
+        if not has_math:
+            return text, False
+        
+        # 保持数学公式格式，matplotlib会自动处理
+        return text, True
+    
+    def wrap_text(self, text: str, max_width: int = 15) -> str:
+        """智能换行文本，考虑数学公式"""
+        # 如果文本包含数学公式，特殊处理
+        if '$' in text:
+            # 分割数学公式和普通文本
+            parts = re.split(r'(\$[^$]+\$)', text)
+            result_parts = []
+            
+            for part in parts:
+                if part.startswith('$') and part.endswith('$'):
+                    # 数学公式不换行
+                    result_parts.append(part)
+                else:
+                    # 普通文本按长度换行
+                    if len(part) > max_width:
+                        wrapped = '\n'.join([part[i:i+max_width] for i in range(0, len(part), max_width)])
+                        result_parts.append(wrapped)
+                    else:
+                        result_parts.append(part)
+            
+            return ''.join(result_parts)
+        else:
+            # 普通文本直接换行
+            if len(text) > max_width:
+                return '\n'.join([text[i:i+max_width] for i in range(0, len(text), max_width)])
+            return text
+    
     def generate_mindmap_image(self, response: str) -> str:
         """生成思维导图图片"""
-        # 解析结构
-        structure = self.parse_mindmap_structure(response)
-        
-        # 创建图形
-        fig, ax = plt.subplots(figsize=(Config.MINDMAP_WIDTH/100, Config.MINDMAP_HEIGHT/100))
-        
-        # 创建有向图
-        G = nx.DiGraph()
-        
-        # 使用分层布局算法
-        self._build_graph(G, structure)
-        pos = nx.spring_layout(G, k=3, iterations=50)
-        
-        # 绘制思维导图
-        # 绘制节点
-        node_colors = self._get_node_colors(G)
-        nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=3000)
-        
-        # 绘制边
-        nx.draw_networkx_edges(G, pos, edge_color='gray', arrows=True, arrowsize=20)
-        
-        # 绘制标签
-        labels = nx.get_node_attributes(G, 'label')
-        nx.draw_networkx_labels(G, pos, labels, font_size=10, font_family='SimHei')
-        
-        ax.axis('off')
-        
-        # 保存图片
-        timestamp = str(int(time.time()))
-        filename = f"mindmap_{timestamp}.png"
-        filepath = os.path.join(Config.OUTPUT_FOLDER, filename)
-        
-        plt.tight_layout()
-        plt.savefig(filepath, dpi=150, bbox_inches='tight', facecolor='white')
-        plt.close()
-        
-        return f"/outputs/{filename}"
+        try:
+            # 解析结构
+            structure = self.parse_mindmap_structure(response)
+            
+            # 创建图形，增大图形尺寸以容纳更多内容
+            fig = plt.figure(figsize=(20, 16))
+            ax = fig.add_subplot(111)
+            
+            # 创建有向图
+            G = nx.Graph()
+            
+            # 递归构建图
+            node_info = {}  # 存储节点的额外信息
+            self._build_graph(G, structure, node_info)
+            
+            # 使用分层布局
+            pos = self._hierarchical_layout(G, structure)
+            
+            # 设置节点大小和颜色
+            node_sizes = []
+            node_colors = []
+            for node in G.nodes():
+                level = G.nodes[node].get('level', 0)
+                # 根据层级设置大小
+                size = 8000 - level * 1200
+                node_sizes.append(max(size, 3000))
+                # 根据层级设置颜色
+                colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#fd79a8']
+                node_colors.append(colors[level % len(colors)])
+            
+            # 绘制边
+            nx.draw_networkx_edges(G, pos, edge_color='#ddd', width=2, alpha=0.6, ax=ax)
+            
+            # 绘制节点
+            nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=node_sizes, alpha=0.9, ax=ax)
+            
+            # 绘制标签（支持数学公式）
+            labels = nx.get_node_attributes(G, 'label')
+            for node, (x, y) in pos.items():
+                label = labels[node]
+                has_math = '$' in label
+                
+                # 智能换行
+                wrapped_label = self.wrap_text(label, max_width=20)
+                
+                # 根据节点层级调整字体大小
+                level = G.nodes[node].get('level', 0)
+                fontsize = 14 - level * 2
+                fontsize = max(fontsize, 8)
+                
+                # 绘制文本
+                if has_math:
+                    # 包含数学公式的文本
+                    ax.text(x, y, wrapped_label, 
+                           horizontalalignment='center',
+                           verticalalignment='center',
+                           fontsize=fontsize,
+                           fontfamily='SimHei',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8),
+                           wrap=True)
+                else:
+                    # 普通文本
+                    ax.text(x, y, wrapped_label,
+                           horizontalalignment='center',
+                           verticalalignment='center',
+                           fontsize=fontsize,
+                           fontfamily='SimHei',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8),
+                           wrap=True)
+            
+            # 设置图形属性
+            ax.set_xlim(min(x for x, y in pos.values()) - 2, max(x for x, y in pos.values()) + 2)
+            ax.set_ylim(min(y for x, y in pos.values()) - 2, max(y for x, y in pos.values()) + 2)
+            ax.axis('off')
+            
+            # 添加标题（如果有的话）
+            if 'title' in structure:
+                fig.suptitle(structure['title'], fontsize=20, fontfamily='SimHei', y=0.98)
+            
+            plt.tight_layout()
+            
+            # 保存图片
+            timestamp = str(int(time.time()))
+            filename = f"mindmap_{timestamp}.png"
+            filepath = os.path.join(Config.OUTPUT_FOLDER, filename)
+            
+            plt.savefig(filepath, dpi=300, bbox_inches='tight', 
+                       facecolor='white', edgecolor='none',
+                       pad_inches=0.5)
+            plt.close()
+            
+            logger.info(f"思维导图已保存到: {filepath}")
+            return f"/outputs/{filename}"
+            
+        except Exception as e:
+            logger.error(f"生成思维导图失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
     
-    def _build_graph(self, G, node, parent=None, level=0):
+    def _build_graph(self, G, node, node_info, parent=None, level=0):
         """递归构建图"""
         # 确定节点ID和标签
         if parent is None:
@@ -117,29 +222,61 @@ class MindMapGenerator:
             node_id = f"node_{len(G.nodes)}"
             label = node.get('name', '')
         
+        # 处理数学公式
+        processed_label, has_math = self.process_math_text(label)
+        
         # 添加节点
-        G.add_node(node_id, label=label, level=level)
+        G.add_node(node_id, label=processed_label, level=level, has_math=has_math)
+        node_info[node_id] = {'has_math': has_math}
         
         # 添加边
         if parent:
             G.add_edge(parent, node_id)
         
         # 递归处理子节点
-        if 'children' in node:
+        if 'children' in node and node['children']:
             for child in node['children']:
-                self._build_graph(G, child, node_id, level + 1)
+                self._build_graph(G, child, node_info, node_id, level + 1)
     
-    def _get_node_colors(self, G):
-        """根据节点层级获取颜色"""
-        colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7']
-        node_colors = []
+    def _hierarchical_layout(self, G, root_structure):
+        """创建分层布局"""
+        pos = {}
         
-        for node in G.nodes():
-            level = G.nodes[node].get('level', 0)
-            color = colors[level % len(colors)]
-            node_colors.append(color)
+        def _assign_positions(node_id, structure, x=0, y=0, layer=0, parent_x=0, sibling_index=0, num_siblings=1):
+            pos[node_id] = (x, y)
+            
+            children = structure.get('children', [])
+            if not children:
+                return
+            
+            # 计算子节点的间距
+            num_children = len(children)
+            if num_children == 0:
+                return
+            
+            # 根据层级调整水平间距
+            if layer == 0:
+                h_spacing = 6.0
+            elif layer == 1:
+                h_spacing = 3.0
+            else:
+                h_spacing = 1.5
+            
+            # 计算子节点的起始x位置
+            total_width = (num_children - 1) * h_spacing
+            start_x = x - total_width / 2
+            
+            # 递归处理子节点
+            for i, child in enumerate(children):
+                child_x = start_x + i * h_spacing
+                child_y = y - 2.0  # 垂直间距
+                child_id = f"node_{len(pos)}"
+                _assign_positions(child_id, child, child_x, child_y, layer + 1, x, i, num_children)
         
-        return node_colors
+        # 从根节点开始分配位置
+        _assign_positions("root", root_structure)
+        
+        return pos
 
 
 class NoteGenerator:
@@ -163,6 +300,7 @@ class NoteGenerator:
    - **重点内容**
    - - 列表项
    - > 引用或重要提示
+6. 如果有数学公式，请使用LaTeX格式，用$...$包围行内公式，用$$...$$包围独立公式
 
 请生成结构化的学习笔记。"""
     
@@ -202,6 +340,7 @@ class QuizGenerator:
    - 分析题（仅困难模式）
 3. 每道题目都要提供答案和解析
 4. 题目要覆盖内容的关键知识点
+5. 如果题目涉及数学公式，请使用LaTeX格式，用$...$包围行内公式，用$$...$$包围独立公式
 
 请按以下格式生成题目：
 
