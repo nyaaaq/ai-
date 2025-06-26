@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生学习助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+        
+        .input-content {
+            display: none;
+        }
+        
+        .input-content.active {
+            display: block;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .file-upload input[type=file] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .file-upload-label {
+            display: block;
+            padding: 40px;
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-label:hover {
+            background: #eef0ff;
+            border-color: #764ba2;
+        }
+        
+        .file-upload-label i {
+            font-size: 48px;
+            color: #667eea;
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .options-section {
+            margin-bottom: 30px;
+        }
+        
+        .option-group {
+            margin-bottom: 20px;
+        }
+        
+        .option-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        
+        .option-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .option-btn {
+            padding: 10px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .option-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .option-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result-section {
+            margin-top: 40px;
+            display: none;
+        }
+        
+        .result-section.active {
+            display: block;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .result-header h2 {
+            color: #444;
+        }
+        
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .action-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .result-content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .mindmap-container {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .mindmap-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .error-message.active {
+            display: block;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .option-buttons {
+                flex-direction: column;
+            }
+            
+            .option-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 学生学习助手</h1>
+            <p>智能生成思维导图、学习笔记和复习题</p>
+        </div>
+        
+        <div class="main-card">
+            <!-- 输入部分 -->
+            <div class="input-section">
+                <div class="input-tabs">
+                    <button class="tab active" data-tab="text">文本输入</button>
+                    <button class="tab" data-tab="file">文件上传</button>
+                </div>
+                
+                <div class="input-content active" id="text-input">
+                    <textarea id="textContent" placeholder="请输入学习内容..."></textarea>
+                </div>
+                
+                <div class="input-content" id="file-input">
+                    <div class="file-upload">
+                        <input type="file" id="fileUpload" accept=".txt,.pdf,.docx,.pptx,.png,.jpg,.jpeg">
+                        <label class="file-upload-label" for="fileUpload">
+                            <i>📁</i>
+                            <p>点击或拖拽文件到这里</p>
+                            <p style="font-size: 14px; color: #999; margin-top: 5px;">
+                                支持 TXT, PDF, Word, PPT, 图片格式
+                            </p>
+                        </label>
+                    </div>
+                    <div id="fileInfo" style="margin-top: 10px; color: #666;"></div>
+                </div>
+            </div>
+            
+            <!-- 选项部分 -->
+            <div class="options-section">
+                <div class="option-group">
+                    <label>生成类型：</label>
+                    <div class="option-buttons">
+                        <button class="option-btn active" data-type="notes">📝 学习笔记</button>
+                        <button class="option-btn" data-type="mindmap">🗺️ 思维导图</button>
+                        <button class="option-btn" data-type="quiz">📋 复习题</button>
+                    </div>
+                </div>
+                
+                <div class="option-group" id="difficultyGroup" style="display: none;">
+                    <label>题目难度：</label>
+                    <div class="option-buttons">
+                        <button class="option-btn" data-difficulty="easy">简单</button>
+                        <button class="option-btn active" data-difficulty="medium">中等</button>
+                        <button class="option-btn" data-difficulty="hard">困难</button>
+                        <button class="option-btn" data-difficulty="mixed">混合</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 生成按钮 -->
+            <button class="generate-btn" id="generateBtn">
+                🚀 开始生成
+            </button>
+            
+            <!-- 加载动画 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在生成中，请稍候...</p>
+            </div>
+            
+            <!-- 错误信息 -->
+            <div class="error-message" id="errorMessage"></div>
+            
+            <!-- 结果部分 -->
+            <div class="result-section" id="resultSection">
+                <div class="result-header">
+                    <h2>生成结果</h2>
+                    <div class="result-actions">
+                        <button class="action-btn" onclick="copyResult()">📋 复制</button>
+                        <button class="action-btn" onclick="downloadResult()">💾 下载</button>
+                    </div>
+                </div>
+                <div id="resultContainer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量
+        let currentContent = '';
+        let currentTaskType = 'notes';
+        let currentDifficulty = 'medium';
+        let generatedResult = '';
+        
+        // 标签切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.input-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                document.getElementById(this.dataset.tab + '-input').classList.add('active');
+            });
+        });
+        
+        // 任务类型选择
+        document.querySelectorAll('[data-type]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentTaskType = this.dataset.type;
+                
+                // 显示/隐藏难度选项
+                const difficultyGroup = document.getElementById('difficultyGroup');
+                if (currentTaskType === 'quiz') {
+                    difficultyGroup.style.display = 'block';
+                } else {
+                    difficultyGroup.style.display = 'none';
+                }
+            });
+        });
+        
+        // 难度选择
+        document.querySelectorAll('[data-difficulty]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-difficulty]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentDifficulty = this.dataset.difficulty;
+            });
+        });
+        
+        // 文件上传
+        document.getElementById('fileUpload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.textContent = `已选择文件: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            
+            // 上传文件
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    currentContent = result.content;
+                    showMessage('文件上传成功！', 'success');
+                } else {
+                    showMessage(result.error || '文件上传失败', 'error');
+                }
+            } catch (error) {
+                showMessage('文件上传出错：' + error.message, 'error');
+            }
+        });
+        
+        // 生成按钮点击
+        document.getElementById('generateBtn').addEventListener('click', async function() {
+            // 获取内容
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+            if (activeTab === 'text') {
+                currentContent = document.getElementById('textContent').value;
+            }
+            
+            if (!currentContent.trim()) {
+                showMessage('请输入内容或上传文件', 'error');
+                return;
+            }
+            
+            // 显示加载动画
+            const loading = document.getElementById('loading');
+            const resultSection = document.getElementById('resultSection');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            loading.classList.add('active');
+            resultSection.classList.remove('active');
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ 生成中...';
+            
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: currentContent,
+                        task_type: currentTaskType,
+                        difficulty: currentDifficulty
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('请求失败');
+                }
+                
+                // 处理流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let resultContainer = document.getElementById('resultContainer');
+                let resultContent = '';
+                
+                resultSection.classList.add('active');
+                
+                if (currentTaskType === 'mindmap') {
+                    resultContainer.innerHTML = '<div class="result-content" id="streamContent"></div><div class="mindmap-container" id="mindmapContainer"></div>';
+                } else {
+                    resultContainer.innerHTML = '<div class="result-content" id="streamContent"></div>';
+                }
+                
+                const streamContent = document.getElementById('streamContent');
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                
+                                if (data.error) {
+                                    throw new Error(data.error);
+                                }
+                                
+                                if (data.type === 'mindmap_complete') {
+                                    // 显示思维导图
+                                    const mindmapContainer = document.getElementById('mindmapContainer');
+                                    mindmapContainer.innerHTML = `<img src="${data.image_url}" alt="思维导图">`;
+                                } else if (data.type === 'complete') {
+                                    // 生成完成
+                                    generatedResult = resultContent;
+                                } else if (data.content) {
+                                    // 追加内容
+                                    resultContent += data.content;
+                                    streamContent.textContent = resultContent;
+                                    streamContent.scrollTop = streamContent.scrollHeight;
+                                }
+                            } catch (e) {
+                                console.error('解析数据错误:', e);
+                            }
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                showMessage('生成失败：' + error.message, 'error');
+            } finally {
+                loading.classList.remove('active');
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🚀 开始生成';
+            }
+        });
+        
+        // 显示消息
+        function showMessage(message, type) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            
+            if (type === 'success') {
+                errorMessage.style.background = '#e8f5e9';
+                errorMessage.style.color = '#2e7d32';
+            } else {
+                errorMessage.style.background = '#ffebee';
+                errorMessage.style.color = '#c62828';
+            }
+            
+            setTimeout(() => {
+                errorMessage.classList.remove('active');
+            }, 5000);
+        }
+        
+        // 复制结果
+        function copyResult() {
+            if (!generatedResult) return;
+            
+            navigator.clipboard.writeText(generatedResult).then(() => {
+                showMessage('已复制到剪贴板', 'success');
+            }).catch(() => {
+                showMessage('复制失败', 'error');
+            });
+        }
+        
+        // 下载结果
+        function downloadResult() {
+            if (!generatedResult) return;
+            
+            const blob = new Blob([generatedResult], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTaskType}_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage('下载成功', 'success');
+        }
+    </script>
+</body>
+</html>

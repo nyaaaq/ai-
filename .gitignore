@@ -1,0 +1,45 @@
+# API密钥等敏感信息
+.env
+*.key
+secrets.json
+
+# Python特定文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+
+# 环境文件
+venv/
+.env/
+.venv/
+env/
+virtualenv/
+
+# 编辑器文件
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+
+# 大文件/数据
+data/
+*.csv
+*.zip
+*.tar.gz
+
+# 可执行文件
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 文档生成文件
+docs/_build/
