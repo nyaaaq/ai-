@@ -62,7 +62,7 @@ OUTPUT_FOLDER=outputs
 SECRET_KEY=your-secret-key-here
 
 # OCR配置
-TESSERACT_CMD=D:\tessera ocr\tesseract.exe
+TESSERACT_CMD=your_tesseract.exe_location
 
 
 ```
