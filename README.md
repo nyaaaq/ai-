@@ -13,7 +13,7 @@
 
 ## 系统要求
 
-- Python 3.8+
+- Python 3.12.7+
 - 操作系统：Windows/Linux/macOS
 - 内存：至少4GB RAM
 - 存储：至少2GB可用空间
