@@ -23,8 +23,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/student-learning-assistant.git
-cd student-learning-assistant
+git clone https://github.com/nyaaaq/ai-.git
 ```
 
 ### 2. 创建虚拟环境
@@ -62,14 +61,13 @@ OUTPUT_FOLDER=outputs
 # 安全配置
 SECRET_KEY=your-secret-key-here
 
-# OCR配置（可选）
+# OCR配置
 TESSERACT_CMD=D:\tessera ocr\tesseract.exe
 
-# 调试模式
-FLASK_DEBUG=False
+
 ```
 
-### 5. 安装Tesseract OCR（可选，用于图片文字识别）
+### 5. 安装Tesseract OCR（用于图片文字识别）
 
 - Windows: 下载并安装 [Tesseract](https://github.com/UB-Mannheim/tesseract/wiki)
 - Linux: `sudo apt-get install tesseract-ocr tesseract-ocr-chi-sim`
